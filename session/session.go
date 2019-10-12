@@ -954,7 +954,7 @@ func (s *session) executeStatement(ctx context.Context, connID uint64, stmtNode 
 	}
 	logStmt(stmtNode, s.sessionVars)
 	startTime := time.Now()
-	recordSet, err := runStmt(ctx, s, stmt)
+	recordSet, err := runStmt(ctx, s, stmt) //[303执行] 准备调用执行1
 	if err != nil {
 		if !kv.ErrKeyExists.Equal(err) {
 			logutil.Logger(ctx).Warn("run statement error",
@@ -981,12 +981,13 @@ func (s *session) Execute(ctx context.Context, sql string) (recordSets []sqlexec
 		span1 := span.Tracer().StartSpan("session.Execute", opentracing.ChildOf(span.Context()))
 		defer span1.Finish()
 	}
-	if recordSets, err = s.execute(ctx, sql); err != nil {
+	if recordSets, err = s.execute(ctx, sql); err != nil { //[303准备] 最终到session的执行
 		s.sessionVars.StmtCtx.AppendError(err)
 	}
 	return
 }
 
+//[303执行] 开始执行
 func (s *session) execute(ctx context.Context, sql string) (recordSets []sqlexec.RecordSet, err error) {
 	s.PrepareTxnCtx(ctx)
 	connID := s.sessionVars.ConnectionID
@@ -999,7 +1000,7 @@ func (s *session) execute(ctx context.Context, sql string) (recordSets []sqlexec
 
 	// Step1: Compile query string to abstract syntax trees(ASTs).
 	startTS := time.Now()
-	stmtNodes, warns, err := s.ParseSQL(ctx, sql, charsetInfo, collation)
+	stmtNodes, warns, err := s.ParseSQL(ctx, sql, charsetInfo, collation) //[303执行] 执行1,将sql解析成ast语法树
 	if err != nil {
 		s.rollbackOnError(ctx)
 		logutil.Logger(ctx).Warn("parse sql error",
@@ -1025,7 +1026,7 @@ func (s *session) execute(ctx context.Context, sql string) (recordSets []sqlexec
 		if err := executor.ResetContextOfStmt(s, stmtNode); err != nil {
 			return nil, err
 		}
-		stmt, err := compiler.Compile(ctx, stmtNode)
+		stmt, err := compiler.Compile(ctx, stmtNode) //[303执行] 执行2,将ast编译成执行计划
 		if err != nil {
 			if tempStmtNodes == nil {
 				tempStmtNodes, warns, err = s.ParseSQL(ctx, sql, charsetInfo, collation)
@@ -1051,6 +1052,7 @@ func (s *session) execute(ctx context.Context, sql string) (recordSets []sqlexec
 		}
 		s.currentPlan = stmt.Plan
 
+		//[303执行] 执行3,开始执行
 		// Step3: Execute the physical plan.
 		if recordSets, err = s.executeStatement(ctx, connID, stmtNode, stmt, recordSets); err != nil {
 			return nil, err

@@ -70,12 +70,12 @@ func (c *Compiler) compile(ctx context.Context, stmtNode ast.StmtNode, skipBind 
 		stmtNode = addHint(c.Ctx, stmtNode)
 	}
 
-	infoSchema := GetInfoSchema(c.Ctx)
-	if err := plannercore.Preprocess(c.Ctx, stmtNode, infoSchema); err != nil {
+	infoSchema := GetInfoSchema(c.Ctx)                                          //[303计划] 获得schema
+	if err := plannercore.Preprocess(c.Ctx, stmtNode, infoSchema); err != nil { //[303计划] 预处理stmt和schema
 		return nil, err
 	}
 
-	finalPlan, err := planner.Optimize(c.Ctx, stmtNode, infoSchema)
+	finalPlan, err := planner.Optimize(c.Ctx, stmtNode, infoSchema) //[303计划] 进行逻辑计划,物理计划,优化
 	if err != nil {
 		return nil, err
 	}

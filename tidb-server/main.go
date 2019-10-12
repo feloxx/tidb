@@ -171,7 +171,7 @@ func main() {
 	createStoreAndDomain()
 	createServer()
 	signal.SetupSignalHandler(serverShutdown)
-	runServer()
+	runServer() //[303启动] 启动tidb服务
 	cleanup()
 	exit()
 }
@@ -565,7 +565,7 @@ func setupTracing() {
 }
 
 func runServer() {
-	err := svr.Run()
+	err := svr.Run() //[303启动] 开始启动
 	terror.MustNil(err)
 }
 

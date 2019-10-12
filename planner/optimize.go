@@ -25,7 +25,7 @@ import (
 // Optimize does optimization and creates a Plan.
 // The node must be prepared first.
 func Optimize(ctx sessionctx.Context, node ast.Node, is infoschema.InfoSchema) (plannercore.Plan, error) {
-	fp := plannercore.TryFastPlan(ctx, node)
+	fp := plannercore.TryFastPlan(ctx, node) //[303计划] 首先尝试一种快速优化套路,判断能不能进行点查
 	if fp != nil {
 		return fp, nil
 	}
@@ -33,8 +33,8 @@ func Optimize(ctx sessionctx.Context, node ast.Node, is infoschema.InfoSchema) (
 	// build logical plan
 	ctx.GetSessionVars().PlanID = 0
 	ctx.GetSessionVars().PlanColumnID = 0
-	builder := plannercore.NewPlanBuilder(ctx, is)
-	p, err := builder.Build(node)
+	builder := plannercore.NewPlanBuilder(ctx, is) //[303计划] 创建一个计划builder
+	p, err := builder.Build(node)                  //[303计划] 对ast中的node开始构建逻辑计划
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func Optimize(ctx sessionctx.Context, node ast.Node, is infoschema.InfoSchema) (
 
 	// Handle the execute statement.
 	if execPlan, ok := p.(*plannercore.Execute); ok {
-		err := execPlan.OptimizePreparedPlan(ctx, is)
+		err := execPlan.OptimizePreparedPlan(ctx, is) //[303计划] 这里要干嘛? 处理计划里的exe?
 		return p, err
 	}
 
@@ -66,7 +66,7 @@ func Optimize(ctx sessionctx.Context, node ast.Node, is infoschema.InfoSchema) (
 	if ctx.GetSessionVars().EnableCascadesPlanner {
 		return cascades.FindBestPlan(ctx, logic)
 	}
-	return plannercore.DoOptimize(builder.GetOptFlag(), logic)
+	return plannercore.DoOptimize(builder.GetOptFlag(), logic) //[303计划] 开始优化
 }
 
 func init() {

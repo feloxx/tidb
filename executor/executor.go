@@ -180,6 +180,7 @@ type Executor interface {
 	Schema() *expression.Schema
 }
 
+//[303执行] 因为有多种执行方式,这里将火山模型的next部分封装了一下,方便不同的执行方式来调用
 // Next is a wrapper function on e.Next(), it handles some common codes.
 func Next(ctx context.Context, e Executor, req *chunk.Chunk) error {
 	sessVars := e.base().ctx.GetSessionVars()

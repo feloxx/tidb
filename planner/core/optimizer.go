@@ -99,18 +99,18 @@ func CheckPrivilege(activeRoles []*auth.RoleIdentity, pm privilege.Manager, vs [
 
 // DoOptimize optimizes a logical plan to a physical plan.
 func DoOptimize(flag uint64, logic LogicalPlan) (PhysicalPlan, error) {
-	logic, err := logicalOptimize(flag, logic)
+	logic, err := logicalOptimize(flag, logic) //[303计划] 逻辑优化
 	if err != nil {
 		return nil, err
 	}
 	if !AllowCartesianProduct.Load() && existsCartesianProduct(logic) {
 		return nil, errors.Trace(ErrCartesianProductUnsupported)
 	}
-	physical, err := physicalOptimize(logic)
+	physical, err := physicalOptimize(logic) //[303计划] 物理优化
 	if err != nil {
 		return nil, err
 	}
-	finalPlan := postOptimize(physical)
+	finalPlan := postOptimize(physical) //[303计划] post是代表最后优化完需要做的事么,看代码有个消除投影和额外注入
 	return finalPlan, nil
 }
 

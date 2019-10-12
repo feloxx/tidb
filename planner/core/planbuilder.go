@@ -246,7 +246,7 @@ func (b *PlanBuilder) Build(node ast.Node) (Plan, error) {
 	case *ast.TraceStmt:
 		return b.buildTrace(x)
 	case *ast.InsertStmt:
-		return b.buildInsert(x)
+		return b.buildInsert(x) //[303计划] 比如这次我们读的插入,就在这里构建insert的逻辑计划
 	case *ast.LoadDataStmt:
 		return b.buildLoadData(x)
 	case *ast.LoadStatsStmt:
@@ -1300,7 +1300,7 @@ func (b *PlanBuilder) resolveGeneratedColumns(columns []*table.Column, onDups ma
 }
 
 func (b *PlanBuilder) buildInsert(insert *ast.InsertStmt) (Plan, error) {
-	ts, ok := insert.Table.TableRefs.Left.(*ast.TableSource)
+	ts, ok := insert.Table.TableRefs.Left.(*ast.TableSource) //[303计划] 因为table stmt里的table是个join,且join又是一颗二叉树,insert只有一个table,所以只用判断二叉树的左边是否有值
 	if !ok {
 		return nil, infoschema.ErrTableNotExists.GenWithStackByArgs()
 	}

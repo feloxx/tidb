@@ -216,7 +216,7 @@ func runStmt(ctx context.Context, sctx sessionctx.Context, s sqlexec.Statement) 
 	if err != nil {
 		return nil, err
 	}
-	rs, err = s.Exec(ctx)
+	rs, err = s.Exec(ctx) //[303执行] 准备调用执行2
 	sessVars := se.GetSessionVars()
 	// All the history should be added here.
 	sessVars.TxnCtx.StatementCount++

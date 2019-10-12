@@ -94,7 +94,7 @@ func (m *memDbBuffer) Set(k Key, v []byte) error {
 		return ErrEntryTooLarge.GenWithStackByArgs(m.entrySizeLimit, len(k)+len(v))
 	}
 
-	err := m.db.Put(k, v)
+	err := m.db.Put(k, v) //[303插入] 普通插入会走到这了,去调用goleveldb的put
 	if m.Size() > m.bufferSizeLimit {
 		return ErrTxnTooLarge.GenWithStack("transaction too large, size:%d", m.Size())
 	}

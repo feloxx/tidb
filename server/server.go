@@ -330,7 +330,7 @@ func (s *Server) Run() error {
 			break
 		}
 
-		clientConn := s.newConn(conn)
+		clientConn := s.newConn(conn) //[303启动] 创建连接
 
 		err = plugin.ForeachPlugin(plugin.Audit, func(p *plugin.Plugin) error {
 			authPlugin := plugin.DeclareAuditManifest(p.Manifest)
@@ -354,7 +354,7 @@ func (s *Server) Run() error {
 			continue
 		}
 
-		go s.onConn(clientConn)
+		go s.onConn(clientConn) //[303启动] 操作该连接
 	}
 	err := s.listener.Close()
 	terror.Log(errors.Trace(err))
@@ -437,7 +437,7 @@ func (s *Server) onConn(conn *clientConn) {
 	}
 
 	connectedTime := time.Now()
-	conn.Run(ctx)
+	conn.Run(ctx) //[303启动] 连接的具体的操作
 
 	err = plugin.ForeachPlugin(plugin.Audit, func(p *plugin.Plugin) error {
 		authPlugin := plugin.DeclareAuditManifest(p.Manifest)

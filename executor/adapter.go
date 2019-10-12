@@ -223,12 +223,12 @@ func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error) {
 		}()
 	}
 
-	e, err := a.buildExecutor()
+	e, err := a.buildExecutor() //[303执行] 构建一个执行器
 	if err != nil {
 		return nil, err
 	}
 
-	if err = e.Open(ctx); err != nil {
+	if err = e.Open(ctx); err != nil { //[303执行] 火山模型的open阶段
 		terror.Call(e.Close)
 		return nil, err
 	}
@@ -253,22 +253,23 @@ func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error) {
 
 	isPessimistic := sctx.GetSessionVars().TxnCtx.IsPessimistic
 
+	//[303执行] 下面开始执行了,没懂具体这些执行方法的意思
 	// Special handle for "select for update statement" in pessimistic transaction.
 	if isPessimistic && a.isSelectForUpdate {
-		return a.handlePessimisticSelectForUpdate(ctx, e)
+		return a.handlePessimisticSelectForUpdate(ctx, e) //[303执行] 第一种执行套路,处理select for update悲观事物
 	}
 
 	// If the executor doesn't return any result to the client, we execute it without delay.
 	if e.Schema().Len() == 0 {
 		if isPessimistic {
-			return nil, a.handlePessimisticDML(ctx, e)
+			return nil, a.handlePessimisticDML(ctx, e) //[303执行] 第二种执行套路,如果执行器没有返回任何结果?这有点不明白 处理悲观dml
 		}
-		return a.handleNoDelayExecutor(ctx, e)
+		return a.handleNoDelayExecutor(ctx, e) //[303执行] 无延迟执行 其他dml走这么?
 	} else if proj, ok := e.(*ProjectionExec); ok && proj.calculateNoDelay {
 		// Currently this is only for the "DO" statement. Take "DO 1, @a=2;" as an example:
 		// the Projection has two expressions and two columns in the schema, but we should
 		// not return the result of the two expressions.
-		return a.handleNoDelayExecutor(ctx, e)
+		return a.handleNoDelayExecutor(ctx, e) //[303执行] 无延迟执行
 	}
 
 	var txnStartTS uint64
@@ -395,7 +396,7 @@ func (a *ExecStmt) handleNoDelayExecutor(ctx context.Context, e Executor) (sqlex
 
 	var err error
 	defer func() {
-		terror.Log(e.Close())
+		terror.Log(e.Close()) // [303执行] 火山模型的最后close结束,defer这种压栈的方式为什么要写在代码中间呢?阅读起来感觉怪怪的
 		a.logAudit()
 	}()
 

@@ -647,7 +647,7 @@ func (cc *clientConn) Run(ctx context.Context) {
 		}
 
 		startTime := time.Now()
-		if err = cc.dispatch(ctx, data); err != nil {
+		if err = cc.dispatch(ctx, data); err != nil { //[303启动] 根据run的信息进行调度
 			if terror.ErrorEqual(err, io.EOF) {
 				cc.addMetrics(data[0], startTime, nil)
 				return
@@ -892,7 +892,7 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 			data = data[:len(data)-1]
 			dataStr = string(hack.String(data))
 		}
-		return cc.handleQuery(ctx, dataStr)
+		return cc.handleQuery(ctx, dataStr) //[303启动] 判断sql语句类型，一般都是ComQuery类型
 	case mysql.ComPing:
 		return cc.writeOK()
 	case mysql.ComInitDB:
@@ -1170,7 +1170,7 @@ func (cc *clientConn) handleLoadStats(ctx context.Context, loadStatsInfo *execut
 // There is a special query `load data` that does not return result, which is handled differently.
 // Query `load stats` does not return result either.
 func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
-	rs, err := cc.ctx.Execute(ctx, sql)
+	rs, err := cc.ctx.Execute(ctx, sql) //[303准备] 在conn处准备调用执行1
 	if err != nil {
 		metrics.ExecuteErrorCounter.WithLabelValues(metrics.ExecuteErrorToLabel(err)).Inc()
 		return err

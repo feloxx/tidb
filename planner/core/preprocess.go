@@ -46,7 +46,7 @@ func InTxnRetry(p *preprocessor) {
 
 // Preprocess resolves table names of the node, and checks some statements validation.
 func Preprocess(ctx sessionctx.Context, node ast.Node, is infoschema.InfoSchema, preprocessOpt ...PreprocessOpt) error {
-	v := preprocessor{is: is, ctx: ctx, tableAliasInJoin: make([]map[string]interface{}, 0)}
+	v := preprocessor{is: is, ctx: ctx, tableAliasInJoin: make([]map[string]interface{}, 0)} //[303计划] 在这个预处理Visitor中检查schema和ast,在visitor的enter中检查语法,leave检查自增还有啥没看大懂
 	for _, optFn := range preprocessOpt {
 		optFn(&v)
 	}

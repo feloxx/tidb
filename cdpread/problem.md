@@ -1,6 +1,6 @@
 # 阅读中发现的问题
 
-[返回目录](../)
+[返回目录](https://github.com/feloxx/tidb/tree/v303_code_read)
 
 > 版本303
 
@@ -203,5 +203,5 @@ handlePessimisticDML()
 handleNoDelayExecutor()
 ```
 
-[返回目录](../)
+[返回目录](https://github.com/feloxx/tidb/tree/v303_code_read)
 

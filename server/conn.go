@@ -623,7 +623,7 @@ func (cc *clientConn) Run(ctx context.Context) {
 		waitTimeout := cc.getSessionVarsWaitTimeout(ctx)
 		cc.pkt.setReadTimeout(time.Duration(waitTimeout) * time.Second)
 		start := time.Now()
-		data, err := cc.readPacket()
+		data, err := cc.readPacket() //[303启动] 读取网络包
 		if err != nil {
 			if terror.ErrorNotEqual(err, io.EOF) {
 				if netErr, isNetErr := errors.Cause(err).(net.Error); isNetErr && netErr.Timeout() {
@@ -846,7 +846,7 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 	span := opentracing.StartSpan("server.dispatch")
 
 	t := time.Now()
-	cmd := data[0]
+	cmd := data[0] // mysql的协议文档https://dev.mysql.com/doc/internals/en/command-phase.html
 	data = data[1:]
 	cc.lastCmd = string(hack.String(data))
 	token := cc.server.getToken()
@@ -1182,7 +1182,7 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 	}
 	if rs != nil {
 		if len(rs) == 1 {
-			err = cc.writeResultset(ctx, rs[0], false, 0, 0)
+			err = cc.writeResultset(ctx, rs[0], false, 0, 0) // 写回客户端
 		} else {
 			err = cc.writeMultiResultset(ctx, rs, false)
 		}

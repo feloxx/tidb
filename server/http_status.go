@@ -72,6 +72,9 @@ func (s *Server) startHTTPServer() {
 	// HTTP path for prometheus.
 	router.Handle("/metrics", prometheus.Handler()).Name("Metrics")
 
+	// HTTP path for haproxy status check
+	router.Handle("/health", nodeHealthHandler{}).Name("Health")
+
 	// HTTP path for dump statistics.
 	router.Handle("/stats/dump/{db}/{table}", s.newStatsHandler()).Name("StatsDump")
 	router.Handle("/stats/dump/{db}/{table}/{snapshot}", s.newStatsHistoryHandler()).Name("StatsHistoryDump")

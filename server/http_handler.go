@@ -23,6 +23,8 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -1573,4 +1575,65 @@ func findTableByPartitionID(schema infoschema.InfoSchema, partitionID int64) (*m
 		}
 	}
 	return nil, nil
+}
+
+func execCmd(cmd string) (float64, error) {
+	c := exec.Command("/bin/bash", "-c", cmd)
+	bytes, err := c.Output()
+	if err != nil {
+		return 0, err
+	}
+	f, err := strconv.ParseFloat(strings.Replace(string(bytes), "\n", "", -1), 64)
+	if err != nil {
+		return 0, err
+	}
+	return f, nil
+}
+
+// checkStatus check system status
+// we should check in 3 dimensions: cpu, memory, network; we now just check memory
+func checkStatus() string {
+	if strings.Contains(strings.ToLower(runtime.GOOS), "linux") {
+		tmCmd := "awk '/MemTotal/{total=$2}END{print total/1024/1024}'  /proc/meminfo"
+		amCmd := "awk '/MemAvailable/{available=$2}END{print available/1024/1024}'  /proc/meminfo"
+
+		total, err1 := execCmd(tmCmd)
+		available, err2 := execCmd(amCmd)
+
+		if err1 != nil {
+			logutil.Logger(context.Background()).Error("get system info error", zap.Error(err1))
+			return "error"
+		}
+		if err2 != nil {
+			logutil.Logger(context.Background()).Error("get system info error", zap.Error(err2))
+			return "error"
+		}
+
+		ratio := available / total
+
+		logutil.Logger(context.Background()).Info("check system status for haproxy",
+			zap.Float64("total", total), zap.Float64("available", available),
+			zap.Float64("free ratio", ratio))
+
+		if ratio < 0.2 {
+			return "bad"
+		} else {
+			return "Health"
+		}
+	}
+	return "not linux"
+}
+
+func (n nodeHealthHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r := checkStatus()
+	if strings.EqualFold("Health", r) {
+		writeData(w, r)
+	} else {
+		w.WriteHeader(503)
+		writeError(w, errors.Errorf("not good server tidb : %s", r))
+	}
+}
+
+// use for haproxy status check
+type nodeHealthHandler struct {
 }

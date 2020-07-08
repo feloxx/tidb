@@ -164,6 +164,7 @@ type ExecStmt struct {
 	isPreparedStmt    bool
 	isSelectForUpdate bool
 	retryCount        uint
+	StartTime         time.Time // querylog
 }
 
 // OriginText returns original statement as a string.
@@ -211,6 +212,7 @@ func (a *ExecStmt) RebuildPlan(ctx context.Context) (int64, error) {
 // like the INSERT, UPDATE statements, it executes in this function, if the Executor returns
 // result, execution is done after this function returns, in the returned sqlexec.RecordSet Next method.
 func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error) {
+	a.StartTime = time.Now()
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -261,9 +263,10 @@ func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error) {
 	cmd32 := atomic.LoadUint32(&sctx.GetSessionVars().CommandValue)
 	cmd := byte(cmd32)
 	var pi processinfoSetter
+
+	sql := a.OriginText()
 	if raw, ok := sctx.(processinfoSetter); ok {
 		pi = raw
-		sql := a.OriginText()
 		if simple, ok := a.Plan.(*plannercore.Simple); ok && simple.Statement != nil {
 			if ss, ok := simple.Statement.(ast.SensitiveStmtNode); ok {
 				// Use SecureText to avoid leak password information.
@@ -277,6 +280,26 @@ func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error) {
 			a.Ctx.GetSessionVars().StmtCtx.StmtType = GetStmtLabel(a.StmtNode)
 		}
 	}
+
+	// query log
+	stmtCtx := a.Ctx.GetSessionVars().StmtCtx
+	stmtCtx.StmtType = GetStmtLabel(a.StmtNode)
+	stmtCtx.SqlText = sql
+	stmtCtx.StartTime = a.StartTime
+
+	needLog := false
+	switch nt := a.StmtNode.(type) {
+	case *ast.SelectStmt:
+		if nt.From != nil {
+			needLog = true
+		}
+	case *ast.CreateDatabaseStmt, *ast.CreateIndexStmt, *ast.CreateTableStmt, *ast.CreateUserStmt, *ast.CreateViewStmt,
+		*ast.DropDatabaseStmt, *ast.DropIndexStmt, *ast.DropTableStmt, *ast.DropUserStmt,
+		*ast.AlterTableStmt, *ast.RenameTableStmt, *ast.TruncateTableStmt, *ast.AlterUserStmt, *ast.UpdateStmt,
+		*ast.DeleteStmt, *ast.LoadDataStmt, *ast.InsertStmt, *ast.GrantStmt:
+		needLog = true
+	}
+	stmtCtx.NeedLog = needLog
 
 	isPessimistic := sctx.GetSessionVars().TxnCtx.IsPessimistic
 

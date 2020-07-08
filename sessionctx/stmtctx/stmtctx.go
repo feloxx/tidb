@@ -140,6 +140,13 @@ type StatementContext struct {
 	planNormalized string
 	planDigest     string
 	LockKeysCount  int32
+
+	// query log
+	SqlText    string
+	NeedLog    bool
+	StartTime  time.Time
+	EndTime    time.Time
+	TableNames []string
 }
 
 // GetNowTsCached getter for nowTs, if not set get now time and cache it

@@ -707,6 +707,11 @@ func (record *dbRecord) match(user, host, db string) bool {
 		patternMatch(host, record.hostPatChars, record.hostPatTypes)
 }
 
+// schema fine control
+func (record *tablesPrivRecord) matchDb(user, host, db string) bool {
+	return record.User == user && strings.EqualFold(record.DB, db) &&
+		patternMatch(host, record.patChars, record.patTypes)
+}
 func (record *tablesPrivRecord) match(user, host, db, table string) bool {
 	return record.User == user && strings.EqualFold(record.DB, db) &&
 		strings.EqualFold(record.TableName, table) && patternMatch(host, record.patChars, record.patTypes)
@@ -774,6 +779,32 @@ func (p *MySQLPrivilege) matchDB(user, host, db string) *dbRecord {
 	return nil
 }
 
+// schema fine control
+func (p *MySQLPrivilege) matchDbWithTp(user, host, db string) bool {
+	for i := 0; i < len(p.User); i++ {
+		record := &p.User[i]
+		if record.match(user, host) {
+			if (record.Privileges & mysql.SelectPriv) > 0 {
+				return true
+			}
+			break
+		}
+	}
+	for i := 0; i < len(p.DB); i++ {
+		record := &p.DB[i]
+		if record.match(user, host, db) {
+			return true
+		}
+	}
+	for i := 0; i < len(p.TablesPriv); i++ {
+		record := &p.TablesPriv[i]
+		if record.matchDb(user, host, db) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *MySQLPrivilege) matchTables(user, host, db, table string) *tablesPrivRecord {
 	for i := 0; i < len(p.TablesPriv); i++ {
 		record := &p.TablesPriv[i]
@@ -792,6 +823,19 @@ func (p *MySQLPrivilege) matchColumns(user, host, db, table, column string) *col
 		}
 	}
 	return nil
+}
+
+// schema fine control
+func (p *MySQLPrivilege) RequestDbVerification(activeRoles []*auth.RoleIdentity, user, host, db string) bool {
+	roleList := p.FindAllRole(activeRoles)
+	roleList = append(roleList, &auth.RoleIdentity{Username: user, Hostname: host})
+	for _, r := range roleList {
+		b := p.matchDbWithTp(r.Username, r.Hostname, db)
+		if b {
+			return true
+		}
+	}
+	return false
 }
 
 // RequestVerification checks whether the user have sufficient privileges to do the operation.

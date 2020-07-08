@@ -82,6 +82,26 @@ func (p *UserPrivileges) RequestVerification(activeRoles []*auth.RoleIdentity, d
 	return mysqlPriv.RequestVerification(activeRoles, p.user, p.host, db, table, column, priv)
 }
 
+// schema fine control
+func (p *UserPrivileges) RequestDbVerification(activeRoles []*auth.RoleIdentity, db string) bool {
+	if SkipWithGrant {
+		return true
+	}
+
+	if p.user == "" && p.host == "" {
+		return true
+	}
+
+	// Skip check for INFORMATION_SCHEMA database.
+	// See https://dev.mysql.com/doc/refman/5.7/en/information-schema.html
+	if strings.EqualFold(db, "INFORMATION_SCHEMA") {
+		return true
+	}
+
+	mysqlPriv := p.Handle.Get()
+	return mysqlPriv.RequestDbVerification(activeRoles, p.user, p.host, db)
+}
+
 // RequestVerificationWithUser implements the Manager interface.
 func (p *UserPrivileges) RequestVerificationWithUser(db, table, column string, priv mysql.PrivilegeType, user *auth.UserIdentity) bool {
 	if SkipWithGrant {

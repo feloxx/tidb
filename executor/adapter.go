@@ -350,6 +350,14 @@ func getMaxExecutionTime(sctx sessionctx.Context, stmtNode ast.StmtNode) uint64 
 	return ret
 }
 
+// schema fine control
+func NewChunkRowRecordSet(rows []chunk.Row, r *sqlexec.RecordSet) sqlexec.RecordSet {
+	if rs, ok := (*r).(*recordSet); ok {
+		return &chunkRowRecordSet{rows: rows, idx: 0, fields: rs.Fields(), e: rs.executor}
+	}
+	return nil
+}
+
 type chunkRowRecordSet struct {
 	rows   []chunk.Row
 	idx    int

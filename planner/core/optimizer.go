@@ -26,6 +26,7 @@ import (
 	"github.com/pingcap/tidb/lock"
 	"github.com/pingcap/tidb/planner/property"
 	"github.com/pingcap/tidb/privilege"
+	"github.com/pingcap/tidb/privilege/privileges"
 	"github.com/pingcap/tidb/sessionctx"
 	"github.com/pingcap/tidb/util/set"
 	"go.uber.org/atomic"
@@ -112,6 +113,16 @@ func CheckTableLock(ctx sessionctx.Context, is infoschema.InfoSchema, vs []visit
 		err := checker.CheckTableLock(vs[i].db, vs[i].table, vs[i].privilege)
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// schema fine control
+func CheckDbPrivilege(activeRoles []*auth.RoleIdentity, pm *privilege.Manager, db string) error {
+	if up, ok := (*pm).(*privileges.UserPrivileges); ok {
+		if !up.RequestDbVerification(activeRoles, db) {
+			return ErrPrivilegeCheckFail
 		}
 	}
 	return nil

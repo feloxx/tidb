@@ -1147,6 +1147,8 @@ func (s *session) execute(ctx context.Context, sql string) (recordSets []sqlexec
 		}
 	}
 
+	recordSets = filterRecordSets(ctx, sql, s, recordSets)
+
 	if s.sessionVars.ClientCapability&mysql.ClientMultiResults == 0 && len(recordSets) > 1 {
 		// return the first recordset if client doesn't support ClientMultiResults.
 		recordSets = recordSets[:1]
@@ -1156,6 +1158,48 @@ func (s *session) execute(ctx context.Context, sql string) (recordSets []sqlexec
 		s.sessionVars.StmtCtx.AppendWarning(util.SyntaxWarn(warn))
 	}
 	return recordSets, nil
+}
+
+// schema fine control
+func filterRecordSets(ctx context.Context, sql string, s *session, rss []sqlexec.RecordSet) (recordSets []sqlexec.RecordSet) {
+	if strings.Contains(strings.ToLower(sql), "information_schema.schemata") {
+		// 找列
+		var tmpRecordSets []sqlexec.RecordSet
+		if pm := privilege.GetPrivilegeManager(s); pm != nil {
+			activeRoles := s.GetSessionVars().ActiveRoles
+			for _, r := range rss {
+				var tRows []chunk.Row
+				chk := r.NewChunk()
+				for {
+					err1 := r.Next(ctx, chk)
+					if err1 != nil || chk.NumRows() == 0 {
+						break
+					}
+					iter := chunk.NewIterator4Chunk(chk)
+					for fi, field := range r.Fields() {
+						if field.DBName.L == "information_schema" && field.Table.Name.L == "schemata" && field.Column.Name.L == "schema_name" {
+							for row := iter.Begin(); row != iter.End(); row = iter.Next() {
+								dbName := row.GetString(fi)
+								if err := plannercore.CheckDbPrivilege(activeRoles, &pm, dbName); err == nil {
+									tRows = append(tRows, row)
+								}
+							}
+							chk = chunk.Renew(chk, s.sessionVars.MaxChunkSize)
+							break
+						}
+					}
+				}
+				if len(tRows) != 0 {
+					tRs := executor.NewChunkRowRecordSet(tRows, &r)
+					tmpRecordSets = append(tmpRecordSets, tRs)
+				}
+			}
+		}
+		if len(tmpRecordSets) != 0 {
+			return tmpRecordSets
+		}
+	}
+	return rss
 }
 
 func (s *session) handleInvalidBindRecord(ctx context.Context, stmtNode ast.StmtNode) {

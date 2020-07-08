@@ -575,6 +575,7 @@ func (p *LogicalJoin) constructInnerIndexScan(ds *DataSource, idx *model.IndexIn
 			Table:           is.Table,
 			isPartition:     ds.isPartition,
 			physicalTableID: ds.physicalTableID,
+			DBName:          is.DBName,
 		}.Init(ds.ctx)
 		ts.SetSchema(is.dataSourceSchema)
 		cop.tablePlan = ts

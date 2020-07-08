@@ -525,6 +525,7 @@ func (ds *DataSource) convertToIndexScan(prop *property.PhysicalProperty, candid
 			Table:           is.Table,
 			isPartition:     ds.isPartition,
 			physicalTableID: ds.physicalTableID,
+			DBName:          is.DBName,
 		}.Init(ds.ctx)
 		ts.SetSchema(ds.schema.Clone())
 		cop.tablePlan = ts

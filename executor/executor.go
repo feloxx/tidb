@@ -1554,6 +1554,36 @@ func ResetContextOfStmt(ctx sessionctx.Context, s ast.StmtNode) (err error) {
 	if err != nil {
 		return err
 	}
+	// query log
+	tblExtractor := sqlTblNameExtractor{tbls: make(map[string]bool), currentDB: vars.CurrentDB}
+	s.Accept(&tblExtractor)
+	for k, _ := range tblExtractor.tbls {
+		sc.TableNames = append(sc.TableNames, k)
+	}
+
 	vars.StmtCtx = sc
 	return
+}
+
+type sqlTblNameExtractor struct {
+	tbls      map[string]bool
+	currentDB string
+}
+
+func (s *sqlTblNameExtractor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
+	if in != nil {
+		switch n := in.(type) {
+		case *ast.TableName:
+			db := n.Schema.L
+			if db == "" {
+				db = s.currentDB
+			}
+			s.tbls[fmt.Sprintf("`%s`.`%s`", db, n.Name.L)] = true
+		}
+	}
+	return in, false
+}
+
+func (s *sqlTblNameExtractor) Leave(in ast.Node) (out ast.Node, ok bool) {
+	return in, true
 }

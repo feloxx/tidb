@@ -384,7 +384,8 @@ func (c *chunkRowRecordSet) NewChunk() *chunk.Chunk {
 }
 
 func (c *chunkRowRecordSet) Close() error {
-	c.stmt.CloseRecordSet(c.stmt.Ctx.GetSessionVars().TxnCtx.StartTS, nil)
+	// TODO Temporary schema fine control
+	// c.stmt.CloseRecordSet(c.stmt.Ctx.GetSessionVars().TxnCtx.StartTS, nil)
 	return nil
 }
 

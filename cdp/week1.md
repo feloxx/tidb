@@ -182,13 +182,13 @@ git checkout 3.0.15-cdp-high-performance
 
 cargo build
 
-## 修改代码
+## 第三步 修改代码
 
 ![](./img/session.png)
 
 ![](./img/txn.png)
 
-## 启动
+## 第四步 启动
 
 准备好包与文件夹
 
@@ -208,7 +208,9 @@ drwxr-xr-x 2 root root         6 Aug 16 20:04 tikv3
 nohup ./pd-server --data-dir=pd --log-file=logs/pd.log 2>&1 &
 
 nohup ./tikv-server --addr="127.0.0.1:20171" --pd="127.0.0.1:2379" --data-dir=tikv1 --log-file=logs/tikv1.log 2>&1 &
+
 nohup ./tikv-server --addr="127.0.0.1:20172" --pd="127.0.0.1:2379" --data-dir=tikv2 --log-file=logs/tikv2.log 2>&1 &
+
 nohup ./tikv-server --addr="127.0.0.1:20173" --pd="127.0.0.1:2379" --data-dir=tikv3 --log-file=logs/tikv3.log 2>&1 &
 
 nohup ./tidb-server --path="127.0.0.1:2379" --log-file=logs/tidb.log 2>&1 &

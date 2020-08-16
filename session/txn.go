@@ -57,6 +57,7 @@ type TxnState struct {
 }
 
 func (st *TxnState) init() {
+	logutil.Logger(context.Background()).Info("hello transaction")
 	st.buf = kv.NewMemDbBuffer(kv.DefaultTxnMembufCap)
 	st.mutations = make(map[int64]*binlog.TableMutation)
 }

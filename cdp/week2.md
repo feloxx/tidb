@@ -204,7 +204,7 @@ sysbench --config-file=config oltp_point_select --tables=6 --table-size=10000000
 
 结果 oltp_point_select 
 
-![](./img/week2-sysbench-xpoint-select.jpg)
+![](./img/week2-sysbench-point-select.jpg)
 
 
 测试 oltp_update_index
@@ -313,3 +313,47 @@ tpmC只有280，感觉有点低呀。可能也是我配置太老了。
 比如我可以在另一个db节点来查看tpch Q5 sql的执行计划。
 
 ![](./img/week2-tpch-error3.jpg)
+
+没时间了。在家里的测试先这样。周一到公司了，使用公司的测试服务器再重新测试一遍。
+
+这边的测试服务器是
+
+16C 64G 1T 云ssd 的阿里云服务器，部署拓扑与家里的一致，三台分布都部署了三个角色。
+
+重新造一遍数据，这个整了10个G花了将近2小时
+
+![](./img/week2-tpch-prepare2.jpg)
+
+开始测试，这里没有等10分钟让tidb进行gc，直接开撸
+
+```
+./go-tpc tpch run -H 172.28.30.28 -P 4000 -U root -p '密码省略' -D tpch --sf 10
+```
+
+测了将近1小时，手动结束了。结果如下。
+
+![](./img/week2-tpch-run2.jpg)
+
+
+## 第四步 查看监控
+
+周末在家里用自己的服务器测的，因为最后测试tpch的时候出了个错，一直在调那个错误。整体的监控就只截图了这一张。
+
+![](./img/week2-overview1.jpg)
+
+以下是在公司测试服务器测试的截图
+
+![](./img/week2-tidb-query-summary.jpg)
+
+![](./img/week2-tikv-details-cluster.jpg)
+
+![](./img/week2-tikv-details-grpc.jpg)
+
+## 第五步 最后个人的一些结论
+
+关于第一次的tpch测试，每次都在Q5出现错误，大概率可能跟我的硬件配置有关系。cpu 和 内存还好。主要还是硬盘io太差了。
+
+后续可以把家里的硬盘，都升级到ssd。
+
+这一块的个人理解，主要还是db层在计算的时候，即使是可以下推到kv层计算。但是最后的计算还是会收集到一个db节点进行工作，如果这一条sql需要收集的数据超过了单db节点的资源限制。以我们之前的经验是经常会把db节点给算宕机。
+
